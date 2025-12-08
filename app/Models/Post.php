@@ -21,9 +21,7 @@ class Post extends Model
         'user_id',
     ];
 
-    /**
-     * Get the user that owns the post.
-     */
+   
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

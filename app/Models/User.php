@@ -49,25 +49,19 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * Get the posts for the user.
-     */
+   
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class);
     }
 
-    /**
-     * Check if user is admin.
-     */
+    
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
     }
 
-    /**
-     * Check if user is member.
-     */
+    
     public function isMember(): bool
     {
         return $this->role === 'member';
