@@ -1,0 +1,13 @@
+php
+$user = User::create([
+    'name' => 'Test Admin',
+    'email' => 'testadmin@gmail.com',
+    'password' => Hash::make('password123'),
+    'role' => 'admin'
+]);
+
+SendWelcomeEmail::dispatch($user);
+
+echo "User created: " . $user->name . " (" . $user->email . ") - Role: " . $user->role . "\n";
+echo "Welcome email dispatched to queue\n";
+exit();
