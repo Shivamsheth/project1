@@ -2,17 +2,21 @@
 
 ## Social Media API - Secure Sanctum Authentication
 
-A comprehensive Laravel API with Sanctum authentication, role-based access control, and Redis queue integration for email notifications.
+A comprehensive Laravel API with Sanctum authentication, role-based access control, OTP-based email verification, and Redis queue integration for email notifications.
 
 ### 🎯 Features
 
 - **Sanctum Authentication**: Secure token-based API authentication
+- **Unified Registration**: Single endpoint for both admin and member signup
 - **Role-Based Access Control**: Admin and Member roles with specific permissions
-- **User Registration**: Separate endpoints for admin and member signup
 - **Single Admin Enforcement**: Only one admin can exist in the system
+- **OTP Email Verification**: 6-digit OTP sent via email (expires in 5 minutes)
 - **Email Validation**: Duplicate email prevention with unique constraints
 - **Posts Management**: Full CRUD operations with role-based authorization
+- **Post Visibility**: All authenticated users can view all posts
+- **Update/Delete Authorization**: Admin can modify any post; Members can only modify their own
 - **Redis Queue**: Asynchronous welcome email notifications
+- **Scheduled Tasks**: Automatic cleanup of expired OTPs every 10 minutes
 - **Eloquent ORM**: Model relationships and database interactions
 - **API Security**: Proper validation, authorization, and error handling
 
@@ -60,14 +64,15 @@ A comprehensive Laravel API with Sanctum authentication, role-based access contr
 ### 🔐 API Endpoints
 
 **Authentication**
-- `POST /api/auth/register-admin` - Register admin user
-- `POST /api/auth/register-member` - Register member user
+- `POST /api/auth/register` - Register user (admin or member based on role field)
 - `POST /api/auth/login` - Login and get token
+- `POST /api/auth/verify-email` - Verify email with OTP (Protected)
+- `POST /api/auth/resend-verification-email` - Resend verification OTP (Public)
 - `POST /api/auth/logout` - Logout and revoke token (Protected)
 - `GET /api/auth/profile` - Get user profile (Protected)
 
 **Posts**
-- `GET /api/posts` - Get posts (role-based filtering) (Protected)
+- `GET /api/posts` - Get all posts from all users (Protected)
 - `GET /api/posts/{id}` - Get single post (Protected)
 - `POST /api/posts` - Create post (Protected)
 - `PUT /api/posts/{id}` - Update post (Protected)
@@ -76,31 +81,42 @@ A comprehensive Laravel API with Sanctum authentication, role-based access contr
 ### 🔄 Role-Based Access
 
 **Admin**
-- Can view all posts from all members
+- Can view all posts from all users
 - Can create posts
-- Can update and delete any post
-- Only one admin can exist
+- Can update and delete ANY post (including other users' posts)
+- Only one admin can exist in the system
 
 **Member**
-- Can view only their own posts and admin posts
-- Cannot view other members' posts
-- Can create, update, and delete their own posts only
+- Can view all posts from all users
+- Can create posts
+- Can only update and delete their OWN posts
+- Cannot modify admin posts or other members' posts
 
-### 📧 Email Notifications
+### 📧 Email Notifications & Verification
 
-Welcome emails are automatically sent via Redis queue when:
-- A new admin registers
-- A new member registers
+**OTP-Based Email Verification**
+- 6-digit OTP is generated and sent via email upon registration
+- OTP expires in 5 minutes
+- Users must verify email with OTP before login
+- Can resend OTP if expired
 
-Emails include:
-- Personalized greeting
-- Role-specific information
-- Account details
+**Welcome Emails**
+- Automatically sent via Redis queue after email verification
+- Personalized greeting with role-specific information
+- Includes account details
+
+### 📅 Scheduled Tasks
+
+**OTP Cleanup**
+- Command: `php artisan otp:clear-expired`
+- Automatically runs every 10 minutes
+- Removes expired OTPs from database
+- Keeps database clean and secure
 
 ### 💾 Database Schema
 
 **Users Table**
-- id, name, email (unique), password, role (admin/member), timestamps
+- id, name, email (unique), password, role (admin/member), otp (nullable), otp_expires_at (nullable), email_verified_at, timestamps
 
 **Posts Table**
 - id, user_id (foreign key), title, content, timestamps
@@ -111,8 +127,8 @@ Emails include:
 ### 🚀 Example Usage
 
 ```bash
-# Register Admin
-curl -X POST http://localhost:8000/api/auth/register-admin \
+# Register as Admin
+curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Admin User",
@@ -122,8 +138,8 @@ curl -X POST http://localhost:8000/api/auth/register-admin \
     "role": "admin"
   }'
 
-# Register Member
-curl -X POST http://localhost:8000/api/auth/register-member \
+# Register as Member
+curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Member User",
@@ -133,7 +149,22 @@ curl -X POST http://localhost:8000/api/auth/register-member \
     "role": "member"
   }'
 
-# Login
+# Verify Email with OTP (received via email)
+curl -X POST http://localhost:8000/api/auth/verify-email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@example.com",
+    "otp": "123456"
+  }'
+
+# Resend OTP if expired
+curl -X POST http://localhost:8000/api/auth/resend-verification-email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@example.com"
+  }'
+
+# Login (after email verification)
 curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
@@ -148,6 +179,7 @@ curl -X POST http://localhost:8000/api/posts \
   -d '{
     "title": "My First Post",
     "content": "This is a longer content for my first post with meaningful information"
+```
   }'
 ```
 
