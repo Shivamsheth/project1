@@ -64,14 +64,9 @@ A comprehensive Laravel API with Sanctum authentication, role-based access contr
 ### 🔐 API Endpoints
 
 **Authentication**
-<<<<<<< HEAD
 - `POST /api/auth/register` - Register user (admin or member based on role field)
-=======
-- `POST /api/auth/register` - Register admin user
-- `POST /api/auth/register` - Register member user
->>>>>>> f64aee32e09e812be18dc425930ba11a9b8ad33e
 - `POST /api/auth/login` - Login and get token
-- `POST /api/auth/verify-email` - Verify email with OTP (Protected)
+- `POST /api/auth/verify-email` - Verify email with OTP (Public)
 - `POST /api/auth/resend-verification-email` - Resend verification OTP (Public)
 - `POST /api/auth/logout` - Logout and revoke token (Protected)
 - `GET /api/auth/profile` - Get user profile (Protected)
