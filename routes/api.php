@@ -5,8 +5,12 @@ use App\Http\Controllers\PostController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
+Route::post('/auth/register', [AuthController::class, 'register']);
+
+// Deprecated: Old routes (kept for backward compatibility)
 Route::post('/auth/register-admin', [AuthController::class, 'registerAdmin']);
 Route::post('/auth/register-member', [AuthController::class, 'registerMember']);
+
 Route::post('/auth/login', [AuthController::class, 'login']);
 
 // Email verification routes (public, no auth required)

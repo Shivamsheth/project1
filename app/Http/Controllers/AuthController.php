@@ -12,8 +12,65 @@ use Illuminate\Support\Facades\Validator;
 class AuthController extends Controller
 {
     /**
+     * Unified Register Function
+     * Flow: Validation → Check Admin Limit → User Create → Send Verification Email
+     * Accepts both admin and member role based on request
+     */
+    public function register(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'password_confirmation' => 'required',
+            'role' => 'required|in:admin,member',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $role = $request->input('role');
+
+        // Check if admin already exists when trying to register as admin
+        if ($role === 'admin' && User::where('role', 'admin')->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An admin already exists. Only one admin is allowed.',
+            ], 403);
+        }
+
+        $user = User::create([
+            'name' => $request->input('name'),
+            'email' => $request->input('email'),
+            'password' => Hash::make($request->input('password')),
+            'role' => $role,
+        ]);
+
+        // Send Verification Email with OTP
+        $user->sendEmailVerificationNotification();
+
+        return response()->json([
+            'success' => true,
+            'message' => ucfirst($role) . ' registered successfully. Please verify your email to continue.',
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'email_verified' => false,
+            ],
+        ], 201);
+    }
+
+    /**
      * Register Admin
      * Flow: Validation → User Create → Send Verification Email
+     * @deprecated Use register() instead
      */
     public function registerAdmin(Request $request): JsonResponse
     {
@@ -67,6 +124,7 @@ class AuthController extends Controller
     /**
      * Register Member
      * Flow: Validation → User Create → Send Verification Email
+     * @deprecated Use register() instead
      */
     public function registerMember(Request $request): JsonResponse
     {
