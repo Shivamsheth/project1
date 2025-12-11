@@ -43,7 +43,7 @@ class WelcomeMail extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return array<int, \Illuminate\Mail\Mailableas\Attachment>
      */
     public function attachments(): array
     {
