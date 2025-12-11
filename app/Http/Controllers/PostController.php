@@ -106,7 +106,7 @@ class PostController extends Controller
 
         $validator = Validator::make($request->all(), [
             'title' => 'sometimes|string|max:150',
-            'content' => 'sometimes|string|min:255',
+            'content' => 'sometimes|string|max:255',
         ]);
 
         if ($validator->fails()) {
