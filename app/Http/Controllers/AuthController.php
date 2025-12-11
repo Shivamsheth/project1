@@ -206,21 +206,25 @@ class AuthController extends Controller
     }
 
     /**
-     * Verify Email
-     * STEP 4: When email is verified, dispatch welcome email job to queue (Redis)
-     * Flow: Hash verification → Mark as verified → Send Welcome Email via Queue
+     * Verify Email with OTP
+     * Flow: Validate OTP → Mark as verified → Send Welcome Email via Queue
      */
-    public function verifyEmail(Request $request, $id, $hash): JsonResponse
+    public function verifyEmail(Request $request): JsonResponse
     {
-        $user = User::findOrFail($id);
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|string|email|exists:users',
+            'otp' => 'required|string|size:6',
+        ]);
 
-        // Verify hash
-        if (sha1($user->getEmailForVerification()) !== $hash) {
+        if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid verification link.',
-            ], 400);
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
         }
+
+        $user = User::where('email', $request->input('email'))->first();
 
         // Check if already verified
         if ($user->hasVerifiedEmail()) {
@@ -233,10 +237,31 @@ class AuthController extends Controller
             ], 200);
         }
 
+        // Check if OTP exists and is not expired
+        if (!$user->otp || now()->isAfter($user->otp_expires_at)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP has expired or is invalid. Please request a new one.',
+            ], 400);
+        }
+
+        // Verify OTP
+        if ($user->otp !== $request->input('otp')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid OTP. Please try again.',
+            ], 400);
+        }
+
         // Mark email as verified
         if ($user->markEmailAsVerified()) {
-            // STEP 4: Send Welcome Email using Queue (Redis)
-            // This will be processed asynchronously
+            // Clear OTP after successful verification
+            $user->update([
+                'otp' => null,
+                'otp_expires_at' => null,
+            ]);
+
+            // Send Welcome Email using Queue (Redis)
             SendWelcomeEmail::dispatch($user);
 
             return response()->json([

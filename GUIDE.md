@@ -42,7 +42,24 @@ Create HTML file in resources/views/... .html
 
 **verify email link** 
 
--> GET - http://localhost:8000/api/auth/verify-email/{id}/(email -hash code after clicking on mail verify from URL).
+-> POST - http://localhost:8000/api/auth/verify-email
+
+-> JSON body for OTP verification:
+
+{
+    "email": "youremail@example.com",
+    "otp": "123456"
+}
+
+**Resend Verification Email** 
+
+-> POST - http://localhost:8000/api/auth/resend-verification-email
+
+-> JSON body:
+
+{
+    "email": "youremail@example.com"
+}
 
 **Login (Email Verified Successfully)**
 -> Json Body
@@ -67,7 +84,48 @@ Create HTML file in resources/views/... .html
   }
 }
 
+**POSTS MANAGEMENT**
 
+-> Get All Posts (Admin sees all, Members see all posts)
+- GET - http://localhost:8000/api/posts (Requires Token)
+
+-> Get Single Post 
+- GET - http://localhost:8000/api/posts/{id} (Requires Token)
+
+-> Create Post
+- POST - http://localhost:8000/api/posts (Requires Token)
+  
+  JSON body:
+  {
+      "title": "Post Title",
+      "content": "Post Content"
+  }
+
+-> Update Post (Admin can update any post, Members can update only their own)
+- PUT - http://localhost:8000/api/posts/{id} (Requires Token)
+
+-> Delete Post (Admin can delete any post, Members can delete only their own)
+- DELETE - http://localhost:8000/api/posts/{id} (Requires Token)
+
+**SCHEDULED TASKS**
+
+-> Clear Expired OTPs (runs every 10 minutes)
+- php artisan otp:clear-expired (Manual execution)
+- php artisan schedule:run (Process scheduler in background)
+
+**ROLE-BASED PERMISSIONS**
+
+**Admin**
+- Can see all posts from all users
+- Can create posts
+- Can update and delete ANY post
+- Only one admin can exist in system
+
+**Member**
+- Can see all posts from all users
+- Can create posts
+- Can only update and delete their OWN posts
+- Cannot update/delete admin posts or other members' posts
 
 
 

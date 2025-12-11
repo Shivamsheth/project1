@@ -10,8 +10,7 @@ Route::post('/auth/register-member', [AuthController::class, 'registerMember']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 
 // Email verification routes (public, no auth required)
-Route::get('/auth/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
-    ->name('verification.verify');
+Route::post('/auth/verify-email', [AuthController::class, 'verifyEmail']);
 Route::post('/auth/resend-verification-email', [AuthController::class, 'resendVerificationEmail']);
 
 // Protected routes

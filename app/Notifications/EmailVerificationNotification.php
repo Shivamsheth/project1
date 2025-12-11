@@ -2,39 +2,69 @@
 
 namespace App\Notifications;
 
-use Illuminate\Auth\Notifications\VerifyEmail as BaseVerifyEmail;
+use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class EmailVerificationNotification extends BaseVerifyEmail
+class EmailVerificationNotification extends Notification
 {
+    use Queueable;
+
     /**
-     * Get the verification URL for the user.
-     *
-     * @param  mixed  $notifiable
-     * @return string
+     * Create a new notification instance.
      */
-    protected function verificationUrl($notifiable)
+    public function __construct()
     {
-        return config('app.frontend_url') . '/verify-email?' .
-            'id=' . $notifiable->getKey() .
-            '&hash=' . sha1($notifiable->getEmailForVerification());
+        //
     }
 
     /**
-     * Build the mail message.
+     * Get the notification's delivery channels.
      *
-     * @param  mixed  $notifiable
-     * @return \Illuminate\Notifications\Messages\MailMessage
+     * @return array<int, string>
      */
-    public function toMail($notifiable)
+    public function via(object $notifiable): array
     {
-        $verificationUrl = $this->verificationUrl($notifiable);
+        return ['mail'];
+    }
+
+    /**
+     * Get the mail representation of the notification.
+     */
+    public function toMail(object $notifiable): MailMessage
+    {
+        // Generate OTP if not already generated
+        if (!$notifiable->otp) {
+            $otp = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+            $notifiable->update([
+                'otp' => $otp,
+                'otp_expires_at' => now()->addMinutes(10),
+            ]);
+        }
 
         return (new MailMessage)
-            ->subject('Verify Email Address')
-            ->line('Please click the button below to verify your email address.')
-            ->action('Verify Email', $verificationUrl)
-            ->line('If you did not create an account, no further action is required.')
-            ->line('This verification link will expire in 60 minutes.');
+            ->subject('Email Verification - Your OTP')
+            ->greeting('Hello ' . $notifiable->name . '!')
+            ->line('Your email verification OTP is:')
+            ->line('')
+            ->line('**' . $notifiable->otp . '**')
+            ->line('')
+            ->line('This OTP will expire in 10 minutes.')
+            ->line('Please use this OTP to verify your email address.')
+            ->line('')
+            ->line('If you did not create an account, please ignore this email.')
+            ->line('Thank you for using our application!');
+    }
+
+    /**
+     * Get the array representation of the notification.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(object $notifiable): array
+    {
+        return [
+            //
+        ];
     }
 }

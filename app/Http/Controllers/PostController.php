@@ -14,19 +14,10 @@ class PostController extends Controller
     {
         $user = $request->user();
 
-        if ($user->isAdmin()) {
-            $posts = Post::with('user:id,name,email,role')
-                ->orderBy('created_at', 'desc')
-                ->get();
-        } else {
-            $adminId = \App\Models\User::where('role', 'admin')->value('id');
-            
-            $posts = Post::with('user:id,name,email,role')
-                ->where('user_id', $user->id)
-                ->orWhere('user_id', $adminId)
-                ->orderBy('created_at', 'desc')
-                ->get();
-        }
+        // Both admin and members can see all posts from all users
+        $posts = Post::with('user:id,name,email,role')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return response()->json([
             'success' => true,
@@ -38,18 +29,7 @@ class PostController extends Controller
    
     public function show(Request $request, Post $post): JsonResponse
     {
-        $user = $request->user();
-
-        if (!$user->isAdmin() && $post->user_id !== $user->id) {
-            $adminId = \App\Models\User::where('role', 'admin')->value('id');
-            if ($post->user_id !== $adminId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized. You cannot view this post.',
-                ], 403);
-            }
-        }
-
+        // All authenticated users can view all posts (both admin and members)
         $post->load('user:id,name,email,role');
 
         return response()->json([
@@ -97,7 +77,8 @@ class PostController extends Controller
     {
         $user = $request->user();
 
-        if ($post->user_id !== $user->id && !$user->isAdmin()) {
+        // Admin can update any post, members can only update their own
+        if (!$user->isAdmin() && $post->user_id !== $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized. You cannot update this post.',
@@ -132,7 +113,8 @@ class PostController extends Controller
     {
         $user = $request->user();
 
-        if ($post->user_id !== $user->id && !$user->isAdmin()) {
+        // Admin can delete any post, members can only delete their own
+        if (!$user->isAdmin() && $post->user_id !== $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized. You cannot delete this post.',
